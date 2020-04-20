@@ -1,0 +1,1 @@
+1. Why aren't the link and page types opaque to the client? 
