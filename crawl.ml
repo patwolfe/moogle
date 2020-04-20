@@ -62,30 +62,28 @@ let get o = match o with
  * reached the maximum number of links (n) or the frontier is empty. *)
 let rec crawl (n : int) (frontier : LinkSet.set)
     (visited : LinkSet.set) (d : WordDict.dict) : WordDict.dict =
-      let _ = print "Inside crawl" in
       match n with 
         0 -> d
       | _ -> if (LinkSet.is_empty frontier) 
              then d
              else
-                 let _ = print ("Current frontier: " ^ (LinkSet.string_of_set frontier)) in 
                  let (link, frontier') = get (LinkSet.choose frontier)  in
                  let { words; _ } = get (get_page link) in
                  let lookup_in_lset = (fun d word -> 
                                 match WordDict.lookup d word with
                                   None -> LinkSet.empty
-                                | Some lset -> lset)    
-                 in
+                                | Some lset -> lset) in
                  let add_link = (fun word d -> 
-                           WordDict.insert d word (LinkSet.insert link (lookup_in_lset d word)))    
-                 in
+                                   WordDict.insert d word 
+                                     (LinkSet.insert link (lookup_in_lset d word))) in
                  let d' = List.fold_right add_link words d in
                  let is_new_link = (fun link -> 
                                       not (LinkSet.member frontier' link) &&
                                       not (LinkSet.member visited link)) in
                  let {links = page_links; _ } = get (get_page link) in
-                 let new_links = List.filter is_new_link page_links in
-                 let new_links_set = List.fold_right LinkSet.insert new_links LinkSet.empty in 
+                 let new_links_set = List.fold_right LinkSet.insert 
+                                        (List.filter is_new_link page_links) 
+                                        LinkSet.empty in 
                  crawl (n - 1) (LinkSet.union new_links_set frontier')
                     (LinkSet.insert link visited) d'
 ;;

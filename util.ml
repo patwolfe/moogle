@@ -28,8 +28,7 @@ module type CRAWLER_SERVICES =
                                 
     (* the initial link to be used by the crawler *)
     val initial_link : link 
-    (: (WordDict.dict -> WordDict.key -> WordDict.dict   
-* The root directory of the server. "" if crawling the web, 
+    (* The root directory of the server. "" if crawling the web, 
     (dirname initial_link) otherwise *)
     val root_dir : string
     (* the number of (distinct) pages the crawler should process *)
