@@ -226,18 +226,50 @@ end
 (* DictSet: a functor that creates a SET by calling our           *)
 (* Dict.Make functor                                              *)
 (******************************************************************)
-(*
+
 module DictSet(C : COMPARABLE) : (SET with type elt = C.t) = 
 struct
   module D = Dict.Make(struct
-      ??? fill this in!
+      type key = C.t
+      type value = string
+      let compare = C.compare 
+      let string_of_key = C.string_of_t 
+      let string_of_value v = ""
+      let gen_key = C.gen
+      let gen_key_gt = C.gen_gt
+      let gen_key_lt = C.gen_lt
+      let gen_key_random = C.gen_random
+      let gen_key_between = C.gen_between
+      let gen_value () = ""
+      let gen_pair () = (gen_key (), "")
   end)
 
   type elt = D.key
   type set = D.dict
-  let empty = ???
-
-  (* implement the rest of the functions in the signature! *)
+  let empty = D.empty
+  let is_empty s = D.fold (fun _ _ _ -> false) true s
+  let insert k s = 
+      match (D.lookup s k) with 
+        (Some _) -> s
+      | None -> D.insert s k ""
+  let singleton k = insert k empty 
+  let remove k s = D.remove s k 
+  let union s1 s2 = 
+      let insert_key k v s = insert k s in
+      D.fold insert_key s1 s2
+  let intersect s1 s2 = 
+      let insert_intersecting_key k v s = 
+          if (D.member s k) then insert k s else s in
+      D.fold insert_intersecting_key s1 s2
+  let member = D.member
+  let choose s = 
+      match D.choose s with 
+        Some (k, v, s) -> Some (k, s)
+      | None -> None
+  let fold f zero s =
+      D.fold (fun elt _ acc -> f elt acc) zero s
+   
+      (* implement the rest of the functions in the signature! *)
 
   let string_of_elt = D.string_of_key
   let string_of_set s = D.string_of_dict s
@@ -253,7 +285,7 @@ struct
   let run_tests () = 
     ()
 end
-*)
+
 
 
 
@@ -282,6 +314,6 @@ IntDictSet.run_tests();;
 module Make(C : COMPARABLE) : (SET with type elt = C.t) = 
   (* Change this line to use our dictionary implementation when your are 
    * finished. *)
-  ListSet (C)
-  (* DictSet (C) *)
+  (* ListSet (C) *)
+   DictSet (C)
 
