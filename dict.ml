@@ -613,14 +613,14 @@ struct
     match dir,n1,n2,left,middle,right with
       | Left3,x,z,a,Two(b,y,c),d -> Absorbed(rem,Two(Three(a,x,b,y,c),z,d))
       | Mid3,y,z,Two(a,x,b),c,d -> Absorbed(rem, Two(Three(a,x,b,y,c),z,d))
-      | Mid3,x,y,a,b,Two(c,z,d) -> Absorbed(rem, Two(Three(a,x,b,y,c),z,d))
+      | Mid3,x,y,a,b,Two(c,z,d) -> Absorbed(rem, Two(a,x,Three(b,y,c,z,d))) 
       | Right3,x,z,a,Two(b,y,c),d -> Absorbed(rem, Two(a,x,Three(b,y,c,z,d))) 
       | Left3,w,z,a,Three(b,x,c,y,d),e -> 
           Absorbed(rem, Three(Two(a, w, b), x, Two(c,y,d),z,e))
       | Mid3,y,z,Three(a,w,b,x,c),d,e -> 
           Absorbed(rem, Three(Two(a, w, b), x, Two(c,y,d),z,e))
       | Mid3,w,x,a,b,Three(c,y,d,z,e) -> 
-          Absorbed(rem, Three(Two(a, w, b), x, Two(c,y,d),z,e))
+          Absorbed(rem, Three(a,w,Two(b,x,c),y, Two(d,z,e)))
       | Right3,w,z,a,Three(b,x,c,y,d),e -> 
           Absorbed(rem, Three(a,w,Two(b,x,c),y, Two(d,z,e)))
       | Left3,_,_,_,_,_ | Mid3,_,_,_,_,_ | Right3,_,_,_,_,_ ->
@@ -940,8 +940,8 @@ struct
     test_remove_nothing() ;
     test_remove_from_nothing() ;
     test_remove_in_order() ;
-    (* test_remove_reverse_order() ;
-    test_remove_random_order() ;  *)
+    test_remove_reverse_order() ;
+    (* test_remove_random_order() ;  *)
     ()
 
 end
@@ -978,6 +978,6 @@ module Make (D:DICT_ARG) : (DICT with type key = D.key
   with type value = D.value) = 
   (* Change this line to the BTDict implementation when you are
    * done implementing your 2-3 trees. *)
-  AssocListDict(D)
-  (* BTDict(D) *)
+  (* AssocListDict(D) *)
+  BTDict(D)
 
