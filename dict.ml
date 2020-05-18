@@ -447,6 +447,7 @@ struct
       | Greater -> Done (Three (x_other, (k1, v1), w_left, (k, v), w_right)) 
       | Eq -> raise InvariantViolation 
 
+  open Format
   (* Upward phase for w where its parent is a Three node whose (key,value) pairs
    * are is x and y, with the key of x less than the key of y.
    * One of x's children is w, and of the two remaining children, 
@@ -488,7 +489,7 @@ struct
       | (_, Greater) ->
         let w = (k, v) in
         let a = other_left in
-        let b = other_left in
+        let b = other_right in
         let x = (x_k, x_v) in 
         let y = (y_k, y_v) in 
         let c = w_left in 
@@ -547,12 +548,12 @@ struct
         let left' = insert_downward left k v in  
           (match left' with 
              | Up (l, x, r) -> insert_upward_two x l r (k1, v1) right
-             | Done t -> Done t) 
+             | Done t -> Done (Two (t, (k1,v1), right))) 
       | Greater -> 
         let right' = insert_downward right k v in  
           (match right' with 
              | Up (l, x, r) -> insert_upward_two x l r (k1, v1) left
-             | Done t -> Done t) 
+             | Done t -> Done (Two (left, (k1, v1), t))) 
       | Eq -> raise InvariantViolation
 
   (* Downward phase on a Three node. (k,v) is the (key,value) we are inserting,
@@ -565,17 +566,17 @@ struct
         let left' = insert_downward left k v in 
           (match left' with 
              | Up (l, x, r) -> insert_upward_three x l r (k1, v1) (k2, v2) middle right
-             | Done t -> Done t)
+             | Done t -> Done (Three(t, (k1, v1), middle, (k2, v2), right)))
       | (Greater, Less) -> 
         let middle' = insert_downward middle k v in 
           (match middle' with 
              | Up (l, x, r) -> insert_upward_three x l r (k1, v1) (k2, v2) left right
-             | Done t -> Done t)
+             | Done t -> Done (Three(left, (k1, v1), t, (k2, v2), right)))
       | (_, Greater) ->
         let right' = insert_downward right k v in 
           (match right' with 
              | Up (l, x, r) -> insert_upward_three x l r (k1, v1) (k2, v2) left middle
-             | Done t -> Done t)
+             | Done t -> Done (Three(left, (k1, v1), middle, (k2, v2), t)))
       | _ -> raise InvariantViolation
 
   (* We insert (k,v) into our dict using insert_downward, which gives us
@@ -583,7 +584,7 @@ struct
    * configuration. *)
   let insert (d: dict) (k: key) (v: value) : dict =
     match insert_downward d k v with
-      | Up(l,(k1,v1),r) -> Two(l,(k1,v1),r)
+      | Up(l,(k1,v1),r) ->  Two(l,(k1,v1),r)
       | Done x -> x
 
   (* Upward phase for removal where the parent of the hole is a Two node. 
@@ -600,7 +601,7 @@ struct
         Absorbed(rem, Two (Two (a, x, b), y, Two (c, z, d)))
       | Right2,z,Three(a,x,b,y,c),d ->
         Absorbed(rem, Two (Two (a, x, b), y, Two (c, z, d)))
-      | Left2,_,_,_ | Right2,_,_,_ -> Absorbed(rem,Two(Leaf,n,Leaf))
+      | Left2,_,_,_ | Right2,_,_,_ -> Absorbed(rem,Two(Leaf,n,Leaf))       
 
   (* Upward phase for removal where the parent of the hole is a Three node.
    * See cases (3-4) on the handout. n1 and n2 are the (key,value) pairs
@@ -640,7 +641,8 @@ struct
           | _, Eq -> Absorbed(Some(k2,v2),Two(Leaf,(k1,v1),Leaf))
           | _, _ -> Absorbed(None,d)
         )
-      | Two(l,n,r) -> remove_downward_two k n l r
+      | Two(l,n,r) -> 
+        remove_downward_two k n l r
       | Three(l,n1,m,n2,r) -> remove_downward_three k n1 n2 l m r
 
   (* DO NOT EDIT THIS *)
@@ -777,6 +779,7 @@ struct
    *   
    *)
   exception Imbalanced_tree
+
   let rec balanced (d: dict) : bool =
     let rec height_balanced tree = 
       match tree with 
@@ -784,7 +787,7 @@ struct
         | Two (left, root, right) -> 
             let l_height = height_balanced left in
             let r_height = height_balanced right in
-            let balanced = abs (l_height - r_height) <= 1 in
+            let balanced = abs (l_height - r_height) < 1 in
             if balanced 
               then (max l_height r_height) + 1 
               else raise Imbalanced_tree 
@@ -792,14 +795,16 @@ struct
             let l_height = height_balanced left in
             let r_height = height_balanced right in
             let m_height = height_balanced mid in
-            let balanced = abs (l_height - r_height) <= 1 &&
-                           abs (l_height - m_height) <= 1 && 
-                           abs (m_height - r_height) <= 1 in
+            let balanced = abs (l_height - r_height) < 1 &&
+                           abs (l_height - m_height) < 1 && 
+                           abs (m_height - r_height) < 1 in
             if balanced 
               then (max l_height (max r_height m_height)) + 1 
               else raise Imbalanced_tree in 
-    let _ = height_balanced d in 
-    true
+    try 
+      let _ = height_balanced d in 
+      true
+    with Imbalanced_tree -> false
 
 
 
@@ -833,7 +838,7 @@ struct
     else 
       (D.gen_key_random(), D.gen_value()) :: (generate_random_list (size - 1))
 
-(*
+
   let test_balance () =
     let d1 = Leaf in
     assert(balanced d1) ;
@@ -873,9 +878,9 @@ struct
                    D.gen_pair(),Leaf,D.gen_pair(),Two(Leaf,D.gen_pair(),Leaf))
     in
     assert(not (balanced d7)) ;
-    () *)
+    () 
 
-(*
+
   let test_remove_nothing () =
     let pairs1 = generate_pair_list 26 in
     let d1 = insert_list empty pairs1 in
@@ -928,15 +933,15 @@ struct
     List.iter (fun (k,_) -> assert(not (member r5 k))) pairs5 ;
     assert(r5 = empty) ;
     assert(balanced r5) ;
-    () *)
+    () 
 
   let run_tests () = 
-(*    test_balance() ; *)
-(*    test_remove_nothing() ;
+    test_balance() ; 
+    test_remove_nothing() ;
     test_remove_from_nothing() ;
     test_remove_in_order() ;
-    test_remove_reverse_order() ;
-    test_remove_random_order() ; *)
+    (* test_remove_reverse_order() ;
+    test_remove_random_order() ;  *)
     ()
 
 end
@@ -958,10 +963,10 @@ IntStringListDict.run_tests();;
  * 
  * Uncomment out the lines below when you are ready to test your
  * 2-3 tree implementation. *)
-(*
+
 module IntStringBTDict = BTDict(IntStringDictArg) ;;
 IntStringBTDict.run_tests();;
-*)
+
 
 
 
