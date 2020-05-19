@@ -554,7 +554,7 @@ struct
           (match right' with 
              | Up (l, x, r) -> insert_upward_two x l r (k1, v1) left
              | Done t -> Done (Two (left, (k1, v1), t))) 
-      | Eq -> raise InvariantViolation
+      | Eq -> Done (Two (left, (k, v), right)) 
 
   (* Downward phase on a Three node. (k,v) is the (key,value) we are inserting,
    * (k1,v1) and (k2,v2) are the two (key,value) pairs in our Three node, and
@@ -577,7 +577,8 @@ struct
           (match right' with 
              | Up (l, x, r) -> insert_upward_three x l r (k1, v1) (k2, v2) left middle
              | Done t -> Done (Three(left, (k1, v1), middle, (k2, v2), t)))
-      | _ -> raise InvariantViolation
+      | (Eq, _) -> Done (Three(left, (k, v), middle, (k2, v2), right))
+      | (_, Eq) -> Done (Three(left, (k1, v1), middle, (k, v), right))
 
   (* We insert (k,v) into our dict using insert_downward, which gives us
    * "kicked" up configuration. We return the tree contained in the "kicked"
@@ -766,8 +767,10 @@ struct
    * as an option this (key,value) pair along with the new dictionary. 
    * If our dictionary is empty, this should return None. *)
   let choose (d: dict) : (key * value * dict) option =
-    raise TODO
-
+    match d with 
+      | Leaf -> None 
+      | Two (left, (k, v), right)-> Some (k, v, remove d k)
+      | Three (left, (l_k, l_v), mid, r_root, right) -> Some (l_k, l_v, remove d l_k)
   (* TODO:
    * Write a function that when given a 2-3 tree (represented by our
    * dictionary d), returns true if and only if the tree is "balanced", 
@@ -897,7 +900,7 @@ struct
     ()
 
   let test_remove_in_order () =
-    let pairs1 = generate_pair_list 26 in
+    let pairs1 = generate_pair_list 260 in
     let d1 = insert_list empty pairs1 in
     List.iter 
       (fun (k,v) -> 
@@ -912,7 +915,7 @@ struct
     ()
 
   let test_remove_reverse_order () =
-    let pairs1 = generate_pair_list 26 in
+    let pairs1 = generate_pair_list 260 in
     let d1 = insert_list_reversed empty pairs1 in
     List.iter 
       (fun (k,v) -> 

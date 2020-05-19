@@ -60,32 +60,40 @@ let get o = match o with
  *
  * Keep crawling until we've
  * reached the maximum number of links (n) or the frontier is empty. *)
+
+exception Page_not_found 
 let rec crawl (n : int) (frontier : LinkSet.set)
     (visited : LinkSet.set) (d : WordDict.dict) : WordDict.dict =
       match n with 
-        0 -> d
+        0 -> Printf.printf "Finished because we hit the crawl limit\n" ; d
       | _ -> if (LinkSet.is_empty frontier) 
-             then d
+             then (Printf.printf "Finished because frontier is empty\n" ; d)
              else
-                 let (link, frontier') = get (LinkSet.choose frontier)  in
-                 let { words; _ } = get (get_page link) in
-                 let lookup_in_lset = (fun d word -> 
-                                match WordDict.lookup d word with
-                                  None -> LinkSet.empty
-                                | Some lset -> lset) in
-                 let add_link = (fun word d -> 
-                                   WordDict.insert d word 
-                                     (LinkSet.insert link (lookup_in_lset d word))) in
-                 let d' = List.fold_right add_link words d in
-                 let is_new_link = (fun link -> 
-                                      not (LinkSet.member frontier' link) &&
-                                      not (LinkSet.member visited link)) in
-                 let {links = page_links; _ } = get (get_page link) in
-                 let new_links_set = List.fold_right LinkSet.insert 
-                                        (List.filter is_new_link page_links) 
-                                        LinkSet.empty in 
-                 crawl (n - 1) (LinkSet.union new_links_set frontier')
-                    (LinkSet.insert link visited) d'
+              let (link, frontier') = get (LinkSet.choose frontier)  in
+              Printf.printf "Getting the page for the link: %s\n" (string_of_link link) ;
+              try
+              let {words; _} = match (get_page link) with 
+              | Some page -> page 
+              | None -> raise Page_not_found in 
+              let lookup_in_lset = (fun d word -> 
+                            match WordDict.lookup d word with
+                              None -> LinkSet.empty
+                            | Some lset -> lset) in
+              let add_link = (fun d word -> 
+                                WordDict.insert d word 
+                                  (LinkSet.insert link (lookup_in_lset d word))) in
+              let d' = List.fold_left add_link d words in
+              let is_new_link = (fun link -> 
+                                  not (LinkSet.member frontier' link) &&
+                                  not (LinkSet.member visited link)) in
+              let {links = page_links; _ } = get (get_page link) in
+              let new_links_set = List.fold_left (fun set link -> LinkSet.insert link set)
+                                    LinkSet.empty
+                                    (List.filter is_new_link page_links) 
+                                     in 
+              crawl (n - 1) (LinkSet.union new_links_set frontier')
+                (LinkSet.insert link visited) d'
+              with Page_not_found -> crawl n frontier' visited d
 ;;
 
 let crawler () = 
